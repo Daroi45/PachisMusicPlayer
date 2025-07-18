@@ -8,17 +8,23 @@ import time
 
 import vlc
 
-
 class View():
+	'''This class is responsible for
+	managing the interface
+	'''
 	def __init__(self, music_player, root):
 		self.root = root
 		self.music_player = music_player
 	
 	def initial_screen(self):
+		'''This method displays all elements of the main
+		screen
+		'''
 		self.root.title("Pachis Music Player")
 		self.root.geometry("380x140")  # Un poco más alto para el texto
 		self.root.resizable(False, False)
 
+		# Label
 		self.label_file = Label(
 			self.root, 
 			text="Sin archivo cargado", 
@@ -27,6 +33,7 @@ class View():
 		)
 		self.label_file.pack(fill="x", padx=10, pady=5)
 
+		# Scale
 		self.time_scale = ttk.Scale(
 			self.root, 
 			from_=0, 
@@ -42,6 +49,7 @@ class View():
 
 		btn_width = 5  # más pequeño
 
+		# Prev button
 		self.btn_prev = Button(
 			control_frame, 
 			text="Anterior", 
@@ -52,6 +60,7 @@ class View():
 		
 		self.btn_prev.grid(row=0, column=0, padx=2)
 
+		# Play button
 		self.btn_play = Button(
 			control_frame, 
 			text="Play", 
@@ -63,6 +72,7 @@ class View():
 		
 		self.btn_play.grid(row=0, column=1, padx=2)
 
+		# Next button
 		self.btn_next = Button(
 			control_frame, 
 			text="Siguiente", 
@@ -73,6 +83,7 @@ class View():
 		
 		self.btn_next.grid(row=0, column=2, padx=2)
 
+		# Open button
 		self.btn_open = Button(
 			control_frame, text="Abrir", 
 			width=btn_width, 
@@ -82,6 +93,7 @@ class View():
 		
 		self.btn_open.grid(row=0, column=3, padx=2)
 
+		# About button
 		self.btn_about = Button(
 			control_frame, 
 			text="Acerca", 
@@ -95,6 +107,7 @@ class View():
 		volume_frame = Frame(self.root)
 		volume_frame.pack(pady=5, fill="x", padx=10)
 
+		# Volume label
 		Label(
 			volume_frame, 
 			text="Volumen", 
@@ -125,71 +138,85 @@ class View():
 		self.root.drop_target_register(DND_FILES)
 		self.root.dnd_bind('<<Drop>>', self.drop)
 
+		# Control variables
 		self.duration = 0
 		self.updating_slider = False
 
+		# update_time thread
 		self.update_thread = threading.Thread(target=self.update_time)
 		self.update_thread.daemon = True
 		self.update_thread.start()
 	
 	def update_text_button(self, text):
+		'''Update the play button text.
+		
+		Args:
+			text (string): Text to display
+		
+		'''
 		self.btn_play.config(text=text)
 
 	def update_label_file(self, text):
+		'''Update the label_file text.
+		
+		Args:
+			text (string): Text to display
+		
+		'''
 		self.label_file.config(text=text)
 
 	def update_time(self):
+		'''It is responsible for updating
+		the scale
+		'''
 		while True:
-			#if playing and not self.paused:
 			if self.music_player.get_playing() and not self.music_player.get_paused():
-				#length = self.player.get_length()
 				length = self.music_player.get_player().get_length()
 				if length > 0:
 					self.duration = length / 1000
-					#current_time = self.player.get_time() / 1000
 					current_time = self.music_player.get_player().get_time() / 1000
 					pos = (current_time / self.duration) * 100 if self.duration > 0 else 0
 					self.updating_slider = True
 					try:
+						# updating the scale
 						self.time_scale.set(pos)
 					except:
 						pass
 					self.updating_slider = False
-					#state = self.player.get_state()
 					state = self.music_player.get_player().get_state()
 					if state == vlc.State.Ended:
-						# ~ self.next_song()
 						self.music_player.next_song()
 			time.sleep(0.3)
 
 	def open_file(self):
+		'''This method is responsible for opening
+		the file manager.
+		'''
 		filenames = filedialog.askopenfilenames(
 			title="Selecciona archivos de audio",
 			filetypes=[("Archivos de audio", "*.mp3 *.ogg *.wav *.flac")]
 		)
 		if filenames:
-			
-			# ~ self.playlist = list(filenames)
 			self.music_player.set_playlist(list(filenames)) 
-			#self.load_song(0)
 			self.music_player.load_song(0)
 
 	def on_seek(self, val):
 		if self.duration > 0 and not self.updating_slider:
 			seek_time = float(val) * self.duration / 100
-			#self.player.set_time(int(seek_time * 1000))
 			self.music_player.get_player().set_time(int(seek_time * 1000))
 
 	def drop(self, event):
+		'''Set the audio_files in the playlist.
+		'''
 		files = self.root.tk.splitlist(event.data)
 		audio_files = [f for f in files if f.lower().endswith(('.mp3', '.ogg', '.wav', '.flac'))]
 		if audio_files:
-			# ~ self.playlist = audio_files
 			self.music_player.set_playlist(audio_files)
-			# ~ self.load_song(0)
 			self.music_player.load_song(0)
 
 	def show_about(self):
+		'''About tab
+		'''
 		about_win = Toplevel(self.root)
 		about_win.title("Acerca de")
 		about_win.geometry("360x140")
@@ -204,6 +231,7 @@ class View():
 		)
 		txt.insert("1.0", about_text)
 
+		# Open the web browser
 		def open_link(event):
 			webbrowser.open_new("https://mastodon.social/@supersnufkin")
 
@@ -218,6 +246,11 @@ class View():
 		txt.config(state=DISABLED)
 
 	def set_text_button(self, text):
+		'''Update text button
+		
+		Args:
+			text (string): text to display
+		'''
 		self.btn_play.config(text=text)
 
 
